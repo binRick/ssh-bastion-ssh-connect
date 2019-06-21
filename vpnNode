@@ -1,0 +1,31 @@
+#!/bin/bash
+_BASTION_SSH_HOST=xxxx.yyyyyyyy.zzz
+_BASTION_SSH_USER=root
+
+
+set -e
+
+_VM=$1
+_DEFAULT_SESSION_NAME=rickDevSession1
+_SESSION="$2 $3 $4 $5 $6"
+_SSH_OPTIONS="-qtoStrictHostKeyChecking=no"
+_SHOW_SESSIONS_SLEEP_SECONDS=2
+_KILLALL_TMUX_COMMAND="ps ax | grep -v grep | grep tmux| cut -d ' ' -f1 | xargs kill"
+
+
+_BASTION_PRIVATE_KEY='~xxxxxxxxxxxxx/.ssh/id_rsa'
+
+if [ "$_VM" == "" ]; then
+ echo "First Argument must be a server"
+ exit 1
+fi
+if [ "$_SESSION" == "" ]; then
+ _SESSION=$__DEFAULT_SESSION_NAME
+fi
+
+_SESSION="${_SESSION/ /_}"
+
+tmuxCommand_ensure="tmux ls | grep 'lost server' >/dev/null 2>&1 && $_KILLALL_TMUX_COMMAND"
+tmuxCommand="($tmuxCommand_ensure); tmux ls | grep -v \"$_DEFAULT_SESSION_NAME\" | grep created && sleep $_SHOW_SESSIONS_SLEEP_SECONDS; tmux a -t \"$_SESSION\" || tmux new -s \"$_SESSION\""
+
+ssh $_SSH_OPTIONS $_BASTION_SSH_USER@$_BASTION_SSH_HOST "ssh $_SSH_OPTIONS -i $_BASTION_PRIVATE_KEY $_VM \"${tmuxCommand}\""
